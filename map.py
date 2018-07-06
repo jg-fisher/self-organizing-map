@@ -9,6 +9,7 @@ class Node:
     Pos of [x, y] on the map.
     """
     def __init__(self, vector, pos):
+        vector = np.array(vector)
         self.vector = vector
         self.pos = pos
 
@@ -16,14 +17,18 @@ class Node:
 class SOM:
     """
     Self-organizing map.
-    n_dim dimensionality of input data.
-    map_dim [height, width] of map
+    n_dim      = dimensionality of input data.
+    map_dim    = [height, width] of map
+    learn_rate = learning rate for nodes
+    map        = array of array of nodes (not a passed param)
+    n_vis      = number of figures for visualization (not a passed param)
     """
-    def __init__(self, n_dim, map_dim, n_nodes=125):
+    def __init__(self, n_dim, map_dim, learn_rate=0.05):
         self.n_dim = n_dim
-        self.num_nodes = n_nodes
         self.map_dim = map_dim
+        self.learn_rate = learn_rate
         self.map = []
+        self.plots = []
 
     def build_map(self):
         """
@@ -36,9 +41,11 @@ class SOM:
                                     [np.random.randint(0, self.map_dim[0]),
                                     np.random.randint(0, self.map_dim[1])]))
 
-    def visualize_map(self):
+    def visualize_map(self, title=None, show=False):
         """
         Displays scatterplot of self organizing map nodes.
+        Title is a string for the title of the scatterplot.
+        Show is bool that determines when plt.show() will be called.
         """
 
         x = []
@@ -48,11 +55,18 @@ class SOM:
             x.append(node.pos[0])
             y.append(node.pos[1])
 
+        global plt
+
         plt.scatter(x, y, label='Self Organizing Map', color='k')
         plt.xlabel('x')
         plt.ylabel('y')
-        plt.title('Self Organizing Map')
-        plt.show()
+        plt.title(title)
+
+        if show:
+            for i, plot in enumerate(self.plots):
+                plot.figure(i)
+            plt.show()
+
 
     def manhatten_distance(self, vector_x, vector_y):
         """
@@ -62,22 +76,32 @@ class SOM:
 
     def fit(self, input_vector):
         """
-        Returns closest node vector weight to input_vector.
+        Returns best matching unit (BMU) - closest node vector weight to input_vector.
         """
         distances = {}
         for node in self.map:
             #print(input_vector, node.vector)
             node_dist = self.manhatten_distance(input_vector, node.vector)
             distances[node] = node_dist
-        closest = max(distances.items(), key=operator.itemgetter(1))[0]
-        return closest
+        bmu = max(distances.items(), key=operator.itemgetter(1))[0]
 
-    def get_node_vectors(self):
-        [print('Node #: {0} {1}'.format(i, node.vector)) for i, node in enumerate(self.map)]
+        self.update_node(bmu)
+
+        return bmu
+
+    def show_node_vectors(self):
+        [print('Node: {0} {1}'.format(i, node.vector)) for i, node in enumerate(self.map)]
+        return
+
+    def update_node(self, bmu):
+        for node in self.map:
+            if node == bmu:
+                print(bmu.vector, node.vector)
+                node.vector += self.learn_rate * (bmu.vector - node.vector)
 
 
 def main():
-    seed = 3
+    seed = 2
     np.random.seed(seed)
 
     X = [[1, 2, 3],
@@ -86,15 +110,19 @@ def main():
 
     X = np.array(X)
 
-    som = SOM(X[0].shape[0], [2, 2])
+    som = SOM(X[0].shape[0], [4, 4])
+
     som.build_map()
-    
+
+    som.visualize_map(title='Initialization')
+
     for i in X:
         print((som.fit(i)).vector)
 
-    som.get_node_vectors()
+    som.show_node_vectors()
 
-    #som.visualize_map()
+    som.visualize_map(title='Post Training', show=True)
+
 
 if __name__ == '__main__':
     main()
