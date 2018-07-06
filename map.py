@@ -43,9 +43,9 @@ class SOM:
         for _ in range(self.n_nodes):
             self.map.append(Node([r(0, 1) for x in range(self.n_dim)]))
 
-    def visualize_map(self, title=None, show=False):
+    def visualize_map(self, dataset=None, title=None, show=False):
         """
-        Displays scatterplot of self organizing map nodes.
+        Displays 2D scatterplot of self organizing map nodes or dataset samples.
         Title is a string for the title of the scatterplot.
         Show is bool that determines when plt.show() will be called.
         """
@@ -53,9 +53,14 @@ class SOM:
         x = []
         y = []
 
-        for node in self.map:
-            x.append(node.vector[0])
-            y.append(node.vector[1])
+        if dataset is not None:
+            for i in dataset:
+                x.append(i[0])
+                y.append(i[1])
+        else:
+            for node in self.map:
+                x.append(node.vector[0])
+                y.append(node.vector[1])
 
         global plt
 
@@ -135,7 +140,7 @@ def main():
     seed = 2
     np.random.seed(seed)
 
-    X = [[np.random.randint(1, 100) for _ in range(10)] for i in range(100)]
+    X = [[np.random.randint(1, 100) for _ in range(10)] for i in range(50)]
 
     X = np.array(X)
     input_dim = X[0].shape[0]
@@ -144,14 +149,15 @@ def main():
 
     som.build_map()
 
-    som.visualize_map('Pre')
+    som.visualize_map(dataset=X, title='Dataset')
+    #som.visualize_map(title='Pre')
 
-    epochs = 2
+    epochs = 1
     for e in range(epochs):
         for i in X:
             som.fit(i)
 
-    som.visualize_map('Post', show=True)
+    som.visualize_map(title='Post', show=True)
 
 if __name__ == '__main__':
     main()
