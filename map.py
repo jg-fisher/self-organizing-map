@@ -8,11 +8,9 @@ class Node:
     Vector with equal number of dimensions as input data.
     Pos of [x, y] on the map.
     """
-    def __init__(self, vector, pos):
+    def __init__(self, vector):
         vector = np.array(vector)
         self.vector = vector
-        self.pos = pos
-
 
 class SOM:
     """
@@ -23,23 +21,23 @@ class SOM:
     map        = array of array of nodes (not a passed param)
     n_vis      = number of figures for visualization (not a passed param)
     """
-    def __init__(self, n_dim, map_dim, learn_rate=0.05):
+    def __init__(self, n_dim, n_nodes=100, map_dim=[5,5], learn_rate=0.05):
         self.n_dim = n_dim
+        self.n_nodes = n_nodes
         self.map_dim = map_dim
         self.learn_rate = learn_rate
         self.map = []
-        self.plots = []
+        self.plt_figure = 0
 
     def build_map(self):
         """
         Initializies map of map_dim size with nodes.
         """
 
-        for x in range(self.map_dim[0]):
-            for y in range(self.map_dim[1]):
-                self.map.append(Node([np.random.uniform(0, 1) for x in range(self.n_dim)],
-                                    [np.random.randint(0, self.map_dim[0]),
-                                    np.random.randint(0, self.map_dim[1])]))
+        r = np.random.uniform
+
+        for _ in range(self.n_nodes):
+            self.map.append(Node([r(0, 1) for x in range(self.n_dim)]))
 
     def visualize_map(self, title=None, show=False):
         """
@@ -52,23 +50,24 @@ class SOM:
         y = []
 
         for node in self.map:
-            x.append(node.pos[0])
-            y.append(node.pos[1])
+            x.append(node.vector[0])
+            y.append(node.vector[1])
 
         global plt
 
+        plt.figure(self.plt_figure)
         plt.scatter(x, y, label='Self Organizing Map', color='k')
         plt.xlabel('x')
         plt.ylabel('y')
         plt.title(title)
 
         if show:
-            for i, plot in enumerate(self.plots):
-                plot.figure(i)
             plt.show()
 
+        self.plt_figure += 1
 
-    def manhatten_distance(self, vector_x, vector_y):
+
+    def _manhatten_distance(self, vector_x, vector_y):
         """
         Returns manhatten distance for vector_x and vector_y
         """
@@ -78,14 +77,15 @@ class SOM:
         """
         Returns best matching unit (BMU) - closest node vector weight to input_vector.
         """
+        input_vector = self._normalize(input_vector)
         distances = {}
         for node in self.map:
-            #print(input_vector, node.vector)
-            node_dist = self.manhatten_distance(input_vector, node.vector)
+            node_dist = self._manhatten_distance(input_vector, node.vector)
             distances[node] = node_dist
-        bmu = max(distances.items(), key=operator.itemgetter(1))[0]
+        bmu = min(distances.items(), key=operator.itemgetter(1))[0]
 
-        self.update_node(bmu)
+        self._update_bmu(bmu, input_vector)
+        self._update_neighbors(bmu)
 
         return bmu
 
@@ -93,36 +93,46 @@ class SOM:
         [print('Node: {0} {1}'.format(i, node.vector)) for i, node in enumerate(self.map)]
         return
 
-    def update_node(self, bmu):
-        for node in self.map:
-            if node == bmu:
-                print(bmu.vector, node.vector)
-                node.vector += self.learn_rate * (bmu.vector - node.vector)
+    def _update_bmu(self, bmu, vector):
+        """
+        Updates the weight vector of best matching unit and neighbors.
+        """
+        bmu.vector += self.learn_rate * (bmu.vector - vector)
+
+
+    def _update_neighbors(self, bmu):
+        """
+        Updates the weight vectors for the neighbors of the best matching unit.
+        """
+        pass
+
+    def _normalize(self, vector):
+        """
+        Normalizes input vector to a range between 0 and 1
+        """
+        norm = (vector-min(vector))/(max(vector)-min(vector))
+        return norm
 
 
 def main():
     seed = 2
     np.random.seed(seed)
 
-    X = [[1, 2, 3],
-        [2, 4, 6],
-        [1, 2, 3]]
+    X = [[np.random.randint(1, 100) for _ in range(10)] for i in range(1000)]
 
     X = np.array(X)
+    input_dim = X[0].shape[0]
 
-    som = SOM(X[0].shape[0], [4, 4])
+    som = SOM(input_dim, learn_rate=.05)
 
     som.build_map()
 
-    som.visualize_map(title='Initialization')
+    som.visualize_map('Pre')
 
     for i in X:
-        print((som.fit(i)).vector)
+        som.fit(i)
 
-    som.show_node_vectors()
-
-    som.visualize_map(title='Post Training', show=True)
-
+    som.visualize_map('Post', show=True)
 
 if __name__ == '__main__':
     main()
