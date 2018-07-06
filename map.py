@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
+from matplotlib.patches import Circle
 import numpy as np
 import operator
+from math import pi
 
 class Node:
     """
@@ -28,6 +30,8 @@ class SOM:
         self.learn_rate = learn_rate
         self.map = []
         self.plt_figure = 0
+        self.vis_dim = 2
+        self.decay_rate = 0.5
 
     def build_map(self):
         """
@@ -85,7 +89,7 @@ class SOM:
         bmu = min(distances.items(), key=operator.itemgetter(1))[0]
 
         self._update_bmu(bmu, input_vector)
-        self._update_neighbors(bmu)
+        self._update_neighbors(bmu, input_vector)
 
         return bmu
 
@@ -100,11 +104,24 @@ class SOM:
         bmu.vector += self.learn_rate * (bmu.vector - vector)
 
 
-    def _update_neighbors(self, bmu):
+    def _update_neighbors(self, bmu, vector):
         """
         Updates the weight vectors for the neighbors of the best matching unit.
         """
-        pass
+
+        r = 1 * self.decay_rate
+        area = Circle((bmu.vector[0], bmu.vector[1]), radius=r)
+
+        neighbors = [node for node in self.map if area.contains_point([node.vector[0], node.vector[1]]) and node is not bmu]
+
+        print(len(self.map))
+        print(len(neighbors))
+
+        for node in neighbors:
+            node.vector += self.decay_rate * (node.vector - vector)
+
+        if self.decay_rate > 0.03:
+            self.decay_rate -= .01
 
     def _normalize(self, vector):
         """
@@ -118,19 +135,21 @@ def main():
     seed = 2
     np.random.seed(seed)
 
-    X = [[np.random.randint(1, 100) for _ in range(10)] for i in range(1000)]
+    X = [[np.random.randint(1, 100) for _ in range(10)] for i in range(100)]
 
     X = np.array(X)
     input_dim = X[0].shape[0]
 
-    som = SOM(input_dim, learn_rate=.05)
+    som = SOM(input_dim, n_nodes=1000, learn_rate=.05)
 
     som.build_map()
 
     som.visualize_map('Pre')
 
-    for i in X:
-        som.fit(i)
+    epochs = 2
+    for e in range(epochs):
+        for i in X:
+            som.fit(i)
 
     som.visualize_map('Post', show=True)
 
