@@ -1,5 +1,5 @@
 # SOM
-Day 2: Self Organizing Map implementation from scratch.
+Self Organizing Map implementation from scratch.
 
 <h3>Dataset</h3>
 
